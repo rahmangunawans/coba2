@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - AniFlix{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-900 py-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Header -->
+        <div class="mb-8">
+            <h1 class="text-3xl font-bold text-white">Welcome back, {{ current_user.username }}!</h1>
+            <div class="flex items-center mt-2 space-x-4">
+                <span class="text-gray-300">Current Plan:</span>
+                <span class="bg-{{ 'red' if current_user.subscription_type == 'vip' else 'blue' if current_user.subscription_type == 'regular' else 'gray' }}-600 text-white px-3 py-1 rounded-full text-sm">
+                    {{ (current_user.subscription_type or 'free').title() }}
+                </span>
+                {% if current_user.subscription_type != 'free' and current_user.subscription_expires %}
+                    <span class="text-gray-400 text-sm">
+                        Expires: {{ current_user.subscription_expires.strftime('%B %d, %Y') }}
+                    </span>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Quick Stats -->
+        {% if (current_user.subscription_type or 'free') == 'free' %}
+        <div class="bg-gray-800 rounded-lg p-6 mb-8 border border-yellow-600">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h3 class="text-lg font-semibold text-white mb-2">Free Plan Limitations</h3>
+                    <p class="text-yellow-400">
+                        Episodes watched today: {{ current_user.episodes_watched_today }}/5
+                    </p>
+                    <p class="text-gray-300 text-sm">Movies limited to 10-minute previews</p>
+                </div>
+                <a href="{{ url_for('subscription') }}" class="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-full">
+                    Upgrade Now
+                </a>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Continue Watching -->
+        {% if recent_history %}
+        <section class="mb-12">
+            <h2 class="text-2xl font-bold text-white mb-6">Continue Watching</h2>
+            <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-6">
+                {% for history in recent_history[:6] %}
+                <div class="bg-gray-800 rounded-lg overflow-hidden shadow-lg transition-all duration-300 card-hover">
+                    <div class="relative">
+                        {% if history.content_type == 'anime' %}
+                            {% set episode = history.content_id %}
+                            <img src="https://via.placeholder.com/300x450/16213e/ffffff?text=Episode" 
+                                 alt="Episode" class="w-full h-32 object-cover">
+                            <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black to-transparent p-2">
+                                <p class="text-white text-sm truncate">Episode {{ episode }}</p>
+                            </div>
+                        {% else %}
+                            <img src="https://via.placeholder.com/300x450/16213e/ffffff?text=Movie" 
+                                 alt="Movie" class="w-full h-32 object-cover">
+                            <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black to-transparent p-2">
+                                <p class="text-white text-sm truncate">Movie</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                    <div class="p-3">
+                        <p class="text-gray-400 text-xs">{{ history.watched_at.strftime('%B %d') }}</p>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </section>
+        {% endif %}
+
+        <!-- Recommended -->
+        {% if recommended_anime %}
+        <section class="mb-12">
+            <h2 class="text-2xl font-bold text-white mb-6">Recommended for You</h2>
+            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
+                {% for anime in recommended_anime %}
+                <div class="bg-gray-800 rounded-lg overflow-hidden shadow-lg transition-all duration-300 card-hover">
+                    <div class="relative">
+                        <img src="{{ anime.poster_url or 'https://via.placeholder.com/300x450/16213e/ffffff?text=' + anime.title }}" 
+                             alt="{{ anime.title }}" class="w-full h-48 object-cover">
+                    </div>
+                    <div class="p-4">
+                        <h3 class="font-semibold text-white mb-1 truncate">{{ anime.title }}</h3>
+                        <div class="flex items-center text-gray-400 text-sm">
+                            <i class="fas fa-star text-yellow-400 mr-1"></i>
+                            <span>{{ "%.1f"|format(anime.rating) }}</span>
+                        </div>
+                        <a href="{{ url_for('watch_anime', anime_id=anime.id) }}" 
+                           class="mt-2 bg-red-600 hover:bg-red-700 text-white text-xs px-3 py-1 rounded block text-center">
+                            Watch Now
+                        </a>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </section>
+        {% endif %}
+
+        <!-- Quick Actions -->
+        <section>
+            <h2 class="text-2xl font-bold text-white mb-6">Quick Actions</h2>
+            <div class="grid md:grid-cols-3 gap-6">
+                <a href="{{ url_for('browse', type='anime') }}" class="bg-gray-800 hover:bg-gray-700 rounded-lg p-6 block text-center transition-colors">
+                    <i class="fas fa-tv text-red-500 text-3xl mb-3"></i>
+                    <h3 class="text-white font-semibold">Browse Anime</h3>
+                    <p class="text-gray-400 text-sm">Discover new series</p>
+                </a>
+                <a href="{{ url_for('browse', type='movie') }}" class="bg-gray-800 hover:bg-gray-700 rounded-lg p-6 block text-center transition-colors">
+                    <i class="fas fa-film text-red-500 text-3xl mb-3"></i>
+                    <h3 class="text-white font-semibold">Browse Movies</h3>
+                    <p class="text-gray-400 text-sm">Watch the latest films</p>
+                </a>
+                <a href="{{ url_for('subscription') }}" class="bg-gray-800 hover:bg-gray-700 rounded-lg p-6 block text-center transition-colors">
+                    <i class="fas fa-crown text-red-500 text-3xl mb-3"></i>
+                    <h3 class="text-white font-semibold">Upgrade Plan</h3>
+                    <p class="text-gray-400 text-sm">Unlock premium features</p>
+                </a>
+            </div>
+        </section>
+    </div>
+</div>
+{% endblock %}

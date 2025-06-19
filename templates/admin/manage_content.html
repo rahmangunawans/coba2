@@ -1,0 +1,433 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Content - Admin - AniFlix{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-900 py-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Header -->
+        <div class="mb-8">
+            <div class="flex items-center mb-4">
+                <a href="{{ url_for('admin_dashboard') }}" class="text-red-500 hover:text-red-400 mr-4">
+                    <i class="fas fa-arrow-left text-lg"></i>
+                </a>
+                <h1 class="text-3xl font-bold text-white">Manage Content</h1>
+            </div>
+            <p class="text-gray-400">Manage existing anime series and movies</p>
+        </div>
+
+        <!-- Content Type Tabs -->
+        <div class="mb-8">
+            <div class="flex space-x-1 bg-gray-800 rounded-lg p-1">
+                <button onclick="showTab('anime')" id="anime-tab" 
+                        class="flex-1 py-2 px-4 text-center rounded-md transition-colors text-white bg-red-600">
+                    <i class="fas fa-tv mr-2"></i>Anime Series
+                </button>
+                <button onclick="showTab('movies')" id="movies-tab" 
+                        class="flex-1 py-2 px-4 text-center rounded-md transition-colors text-gray-300 hover:text-white">
+                    <i class="fas fa-film mr-2"></i>Movies
+                </button>
+            </div>
+        </div>
+
+        <!-- Anime Content -->
+        <div id="anime-content" class="content-tab">
+            <div class="bg-gray-800 rounded-lg overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-700">
+                    <div class="flex items-center justify-between">
+                        <h2 class="text-xl font-semibold text-white">Anime Series ({{ anime_list|length }})</h2>
+                        <a href="{{ url_for('admin_add_anime') }}" 
+                           class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm">
+                            <i class="fas fa-plus mr-2"></i>Add New Anime
+                        </a>
+                    </div>
+                </div>
+                
+                {% if anime_list %}
+                <div class="overflow-x-auto">
+                    <table class="w-full">
+                        <thead class="bg-gray-700">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Anime</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Genre</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Rating</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Seasons</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Episodes</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-700">
+                            {% for anime in anime_list %}
+                            <tr class="hover:bg-gray-700">
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="flex items-center">
+                                        <div class="flex-shrink-0 h-16 w-12">
+                                            <img class="h-16 w-12 rounded object-cover" 
+                                                 src="{{ anime.poster_url or 'https://via.placeholder.com/100x150/16213e/ffffff?text=' + anime.title[:1] }}" 
+                                                 alt="{{ anime.title }}">
+                                        </div>
+                                        <div class="ml-4">
+                                            <div class="text-sm font-medium text-white">{{ anime.title }}</div>
+                                            <div class="text-sm text-gray-400">{{ anime.year or 'N/A' }}</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    {% if anime.genre %}
+                                        {% for genre in anime.genre.split(',')[:2] %}
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-600 text-gray-200 mr-1">
+                                            {{ genre.strip() }}
+                                        </span>
+                                        {% endfor %}
+                                    {% else %}
+                                        <span class="text-gray-500">-</span>
+                                    {% endif %}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="flex items-center">
+                                        <i class="fas fa-star text-yellow-400 mr-1"></i>
+                                        <span class="text-white">{{ "%.1f"|format(anime.rating) }}</span>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-white">
+                                    {{ anime.seasons|length }}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-white">
+                                    {% set total_episodes = 0 %}
+                                    {% for season in anime.seasons %}
+                                        {% set total_episodes = total_episodes + season.episodes|length %}
+                                    {% endfor %}
+                                    {{ total_episodes }}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                    <div class="flex space-x-2">
+                                        <a href="{{ url_for('admin_add_season', anime_id=anime.id) }}" 
+                                           class="text-blue-400 hover:text-blue-300" title="Add Season">
+                                            <i class="fas fa-plus-circle"></i>
+                                        </a>
+                                        <button onclick="showAnimeDetails({{ anime.id }})" 
+                                                class="text-green-400 hover:text-green-300" title="View Details">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                        {% for season in anime.seasons %}
+                                        <a href="{{ url_for('admin_manage_episodes', season_id=season.id) }}" 
+                                           class="text-purple-400 hover:text-purple-300" title="Manage S{{ season.season_number }} Episodes">
+                                            <i class="fas fa-list"></i>
+                                        </a>
+                                        {% endfor %}
+                                        <a href="{{ url_for('admin_edit_anime', anime_id=anime.id) }}" 
+                                           class="text-yellow-400 hover:text-yellow-300" title="Edit">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        <a href="{{ url_for('watch_anime', anime_id=anime.id) }}" 
+                                           class="text-red-400 hover:text-red-300" title="Preview">
+                                            <i class="fas fa-play"></i>
+                                        </a>
+                                        <form method="POST" action="{{ url_for('admin_delete_anime', anime_id=anime.id) }}" 
+                                              class="inline" onsubmit="return confirm('Are you sure you want to delete this anime?')">
+                                            <button type="submit" class="text-red-600 hover:text-red-500" title="Delete">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                            
+                            <!-- Expandable Details Row -->
+                            <tr id="anime-details-{{ anime.id }}" class="hidden">
+                                <td colspan="6" class="px-6 py-4 bg-gray-750">
+                                    <div class="space-y-4">
+                                        <div>
+                                            <h4 class="text-white font-semibold mb-2">Description:</h4>
+                                            <p class="text-gray-300 text-sm">{{ anime.description or 'No description available.' }}</p>
+                                        </div>
+                                        
+                                        {% if anime.seasons %}
+                                        <div>
+                                            <h4 class="text-white font-semibold mb-3">Seasons & Episodes:</h4>
+                                            <div class="space-y-3">
+                                                {% for season in anime.seasons %}
+                                                <div class="bg-gray-800 rounded-lg p-4">
+                                                    <div class="flex items-center justify-between mb-2">
+                                                        <h5 class="text-white font-medium">
+                                                            Season {{ season.season_number }}
+                                                            {% if season.title %} - {{ season.title }}{% endif %}
+                                                        </h5>
+                                                        <a href="{{ url_for('admin_add_episode', season_id=season.id) }}" 
+                                                           class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-xs">
+                                                            <i class="fas fa-plus mr-1"></i>Add Episode
+                                                        </a>
+                                                    </div>
+                                                    
+                                                    {% if season.episodes %}
+                                                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+                                                        {% for episode in season.episodes %}
+                                                        <div class="bg-gray-700 rounded p-3">
+                                                            <div class="flex items-center justify-between">
+                                                                <div>
+                                                                    <div class="text-white text-sm font-medium">
+                                                                        Episode {{ episode.episode_number }}
+                                                                    </div>
+                                                                    {% if episode.title %}
+                                                                    <div class="text-gray-400 text-xs">{{ episode.title }}</div>
+                                                                    {% endif %}
+                                                                    {% if episode.duration_minutes %}
+                                                                    <div class="text-gray-500 text-xs">{{ episode.duration_minutes }}min</div>
+                                                                    {% endif %}
+                                                                </div>
+                                                                <div class="flex items-center space-x-1">
+                                                                    {% if episode.torrent_url %}
+                                                                    <i class="fas fa-link text-green-400 text-xs" title="Has torrent link"></i>
+                                                                    {% else %}
+                                                                    <i class="fas fa-exclamation-triangle text-yellow-400 text-xs" title="Missing torrent link"></i>
+                                                                    {% endif %}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        {% endfor %}
+                                                    </div>
+                                                    {% else %}
+                                                    <p class="text-gray-400 text-sm">No episodes added yet.</p>
+                                                    {% endif %}
+                                                </div>
+                                                {% endfor %}
+                                            </div>
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-12">
+                    <i class="fas fa-tv text-gray-600 text-4xl mb-4"></i>
+                    <h3 class="text-lg font-medium text-white mb-2">No anime series found</h3>
+                    <p class="text-gray-400 mb-4">Start by adding your first anime series</p>
+                    <a href="{{ url_for('admin_add_anime') }}" 
+                       class="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg">
+                        <i class="fas fa-plus mr-2"></i>Add First Anime
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Movies Content -->
+        <div id="movies-content" class="content-tab hidden">
+            <div class="bg-gray-800 rounded-lg overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-700">
+                    <div class="flex items-center justify-between">
+                        <h2 class="text-xl font-semibold text-white">Movies ({{ movie_list|length }})</h2>
+                        <a href="{{ url_for('admin_add_movie') }}" 
+                           class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm">
+                            <i class="fas fa-plus mr-2"></i>Add New Movie
+                        </a>
+                    </div>
+                </div>
+                
+                {% if movie_list %}
+                <div class="overflow-x-auto">
+                    <table class="w-full">
+                        <thead class="bg-gray-700">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Movie</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Genre</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Rating</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Duration</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Parts</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-700">
+                            {% for movie in movie_list %}
+                            <tr class="hover:bg-gray-700">
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="flex items-center">
+                                        <div class="flex-shrink-0 h-16 w-12">
+                                            <img class="h-16 w-12 rounded object-cover" 
+                                                 src="{{ movie.poster_url or 'https://via.placeholder.com/100x150/16213e/ffffff?text=' + movie.title[:1] }}" 
+                                                 alt="{{ movie.title }}">
+                                        </div>
+                                        <div class="ml-4">
+                                            <div class="text-sm font-medium text-white">{{ movie.title }}</div>
+                                            <div class="text-sm text-gray-400">{{ movie.year or 'N/A' }}</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    {% if movie.genre %}
+                                        {% for genre in movie.genre.split(',')[:2] %}
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-600 text-gray-200 mr-1">
+                                            {{ genre.strip() }}
+                                        </span>
+                                        {% endfor %}
+                                    {% else %}
+                                        <span class="text-gray-500">-</span>
+                                    {% endif %}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="flex items-center">
+                                        <i class="fas fa-star text-yellow-400 mr-1"></i>
+                                        <span class="text-white">{{ "%.1f"|format(movie.rating) }}</span>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-white">
+                                    {{ movie.duration_minutes or 'N/A' }}{% if movie.duration_minutes %}min{% endif %}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-white">
+                                    {{ movie.parts|length }}
+                                    {% if movie.parts|length > 0 %}
+                                        <a href="{{ url_for('admin_add_movie_part', movie_id=movie.id) }}" 
+                                           class="ml-2 text-blue-400 hover:text-blue-300 text-xs">
+                                            <i class="fas fa-plus"></i>
+                                        </a>
+                                    {% else %}
+                                        <a href="{{ url_for('admin_add_movie_part', movie_id=movie.id) }}" 
+                                           class="ml-2 bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 rounded text-xs">
+                                            Add Part
+                                        </a>
+                                    {% endif %}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                    <div class="flex space-x-2">
+                                        <button onclick="showMovieDetails({{ movie.id }})" 
+                                                class="text-green-400 hover:text-green-300" title="View Details">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                        {% if movie.parts %}
+                                        <a href="{{ url_for('admin_manage_movie_parts', movie_id=movie.id) }}" 
+                                           class="text-purple-400 hover:text-purple-300" title="Manage Movie Parts">
+                                            <i class="fas fa-list"></i>
+                                        </a>
+                                        {% endif %}
+                                        <a href="{{ url_for('admin_edit_movie', movie_id=movie.id) }}" 
+                                           class="text-yellow-400 hover:text-yellow-300" title="Edit">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        <a href="{{ url_for('watch_movie', movie_id=movie.id) }}" 
+                                           class="text-red-400 hover:text-red-300" title="Preview">
+                                            <i class="fas fa-play"></i>
+                                        </a>
+                                        <form method="POST" action="{{ url_for('admin_delete_movie', movie_id=movie.id) }}" 
+                                              class="inline" onsubmit="return confirm('Are you sure you want to delete this movie?')">
+                                            <button type="submit" class="text-red-600 hover:text-red-500" title="Delete">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                            
+                            <!-- Expandable Details Row -->
+                            <tr id="movie-details-{{ movie.id }}" class="hidden">
+                                <td colspan="6" class="px-6 py-4 bg-gray-750">
+                                    <div class="space-y-4">
+                                        <div>
+                                            <h4 class="text-white font-semibold mb-2">Description:</h4>
+                                            <p class="text-gray-300 text-sm">{{ movie.description or 'No description available.' }}</p>
+                                        </div>
+                                        
+                                        {% if movie.trailer_url %}
+                                        <div>
+                                            <h4 class="text-white font-semibold mb-2">Trailer:</h4>
+                                            <div class="bg-gray-800 rounded p-3">
+                                                <a href="{{ movie.trailer_url }}" target="_blank" class="text-blue-400 hover:text-blue-300 text-sm break-all">
+                                                    <i class="fas fa-external-link-alt mr-1"></i>{{ movie.trailer_url }}
+                                                </a>
+                                            </div>
+                                        </div>
+                                        {% endif %}
+                                        
+                                        <div>
+                                            <h4 class="text-white font-semibold mb-3">Movie Parts:</h4>
+                                            <div class="space-y-2">
+                                                {% if movie.parts %}
+                                                    {% for part in movie.parts %}
+                                                    <div class="bg-gray-800 rounded-lg p-4">
+                                                        <div class="flex items-center justify-between mb-2">
+                                                            <h5 class="text-white font-medium">
+                                                                Part {{ part.part_number }}
+                                                                {% if part.title %} - {{ part.title }}{% endif %}
+                                                            </h5>
+                                                            <div class="flex items-center space-x-2">
+                                                                {% if part.duration_minutes %}
+                                                                <span class="text-gray-400 text-sm">{{ part.duration_minutes }}min</span>
+                                                                {% endif %}
+                                                                {% if part.torrent_url %}
+                                                                <i class="fas fa-link text-green-400 text-xs" title="Has torrent link"></i>
+                                                                {% else %}
+                                                                <i class="fas fa-exclamation-triangle text-yellow-400 text-xs" title="Missing torrent link"></i>
+                                                                {% endif %}
+                                                            </div>
+                                                        </div>
+                                                        {% if part.torrent_url %}
+                                                        <div class="text-xs text-gray-500 break-all">{{ part.torrent_url[:80] }}{% if part.torrent_url|length > 80 %}...{% endif %}</div>
+                                                        {% endif %}
+                                                    </div>
+                                                    {% endfor %}
+                                                {% else %}
+                                                <div class="bg-yellow-900 rounded p-3">
+                                                    <p class="text-yellow-300 text-sm">No movie parts added yet. Add parts to enable streaming.</p>
+                                                </div>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-12">
+                    <i class="fas fa-film text-gray-600 text-4xl mb-4"></i>
+                    <h3 class="text-lg font-medium text-white mb-2">No movies found</h3>
+                    <p class="text-gray-400 mb-4">Start by adding your first movie</p>
+                    <a href="{{ url_for('admin_add_movie') }}" 
+                       class="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg">
+                        <i class="fas fa-plus mr-2"></i>Add First Movie
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function showTab(tabName) {
+    // Hide all content tabs
+    document.querySelectorAll('.content-tab').forEach(tab => {
+        tab.classList.add('hidden');
+    });
+    
+    // Remove active class from all tab buttons
+    document.querySelectorAll('[id$="-tab"]').forEach(btn => {
+        btn.classList.remove('bg-red-600', 'text-white');
+        btn.classList.add('text-gray-300', 'hover:text-white');
+    });
+    
+    // Show selected content tab
+    document.getElementById(tabName + '-content').classList.remove('hidden');
+    
+    // Add active class to selected tab button
+    const activeTab = document.getElementById(tabName + '-tab');
+    activeTab.classList.add('bg-red-600', 'text-white');
+    activeTab.classList.remove('text-gray-300', 'hover:text-white');
+}
+
+function showAnimeDetails(animeId) {
+    const detailsRow = document.getElementById('anime-details-' + animeId);
+    detailsRow.classList.toggle('hidden');
+}
+
+function showMovieDetails(movieId) {
+    const detailsRow = document.getElementById('movie-details-' + movieId);
+    detailsRow.classList.toggle('hidden');
+}
+</script>
+{% endblock %}

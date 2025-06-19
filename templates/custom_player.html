@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AniFlix Player</title>
+    <script src="https://cdn.jsdelivr.net/npm/webtorrent@1.9.7/webtorrent.min.js"></script>
+    <script>
+        // Debug WebTorrent loading
+        window.addEventListener('load', function() {
+            console.log('Window loaded, WebTorrent:', typeof WebTorrent);
+            if (typeof WebTorrent === 'undefined') {
+                console.error('WebTorrent failed to load from CDN');
+            }
+        });
+    </script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #000;
+            font-family: Arial, sans-serif;
+        }
+        
+        .player-container {
+            position: relative;
+            width: 100%;
+            height: 100vh;
+            background: #000;
+        }
+        
+        .video-player {
+            width: 100%;
+            height: 100%;
+            background: #000;
+        }
+        
+        .watermark {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 18px;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            pointer-events: none;
+        }
+        
+        .player-controls {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(transparent, rgba(0, 0, 0, 0.8));
+            padding: 20px;
+            z-index: 999;
+        }
+        
+        .control-buttons {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 10px;
+        }
+        
+        .btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        
+        .btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 3px;
+            cursor: pointer;
+            margin-bottom: 10px;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: #ff6b6b;
+            border-radius: 3px;
+            width: 0%;
+            transition: width 0.1s;
+        }
+        
+        .time-display {
+            color: white;
+            font-size: 14px;
+        }
+        
+        .quality-selector {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 1000;
+        }
+        
+        .quality-btn {
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        
+        .quality-btn.active {
+            background: #ff6b6b;
+            border-color: #ff6b6b;
+        }
+        
+        .error-message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            text-align: center;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 20px;
+            border-radius: 8px;
+            z-index: 1001;
+        }
+        
+        .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 18px;
+            z-index: 1001;
+            text-align: center;
+        }
+        
+        .spinner {
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top: 3px solid #ff6b6b;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+        
+        .progress-info {
+            margin-top: 10px;
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.8);
+        }
+        
+        .download-stats {
+            position: absolute;
+            top: 70px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 12px;
+            z-index: 1000;
+            display: none;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="player-container">
+        <div class="watermark">AniFlix</div>
+        
+        <div class="quality-selector">
+            <button class="quality-btn active" data-quality="1080p">1080p</button>
+            <button class="quality-btn" data-quality="720p">720p</button>
+            <button class="quality-btn" data-quality="480p">480p</button>
+        </div>
+        
+        <video class="video-player" id="videoPlayer" preload="metadata">
+            Your browser does not support the video tag.
+        </video>
+        
+        <div class="loading" id="loadingDiv">
+            <div class="spinner"></div>
+            <div id="loadingText">Loading stream...</div>
+            <div class="progress-info" id="progressInfo"></div>
+        </div>
+        
+        <div class="download-stats" id="downloadStats">
+            <div>Speed: <span id="downloadSpeed">0 KB/s</span></div>
+            <div>Downloaded: <span id="downloadProgress">0%</span></div>
+            <div>Peers: <span id="peersCount">0</span></div>
+        </div>
+        
+        <div class="error-message" id="errorDiv" style="display: none;">
+            <h3>Stream Not Available</h3>
+            <p>Unable to load the video stream. This might be due to:</p>
+            <ul style="text-align: left;">
+                <li>Invalid torrent/magnet URL</li>
+                <li>No active seeders</li>
+                <li>Network connectivity issues</li>
+                <li>Browser compatibility issues</li>
+            </ul>
+            <div style="margin-top: 15px;">
+                <button class="btn" onclick="retryStream()">Retry</button>
+                <button class="btn" onclick="tryDirectPlay()">Try Direct Play</button>
+                <button class="btn" onclick="window.history.back()">Go Back</button>
+            </div>
+        </div>
+        
+        <div class="player-controls" id="playerControls" style="display: none;">
+            <div class="progress-bar" id="progressBar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+            
+            <div class="control-buttons">
+                <button class="btn" id="playPauseBtn">▶️</button>
+                <button class="btn" id="muteBtn">🔊</button>
+                <input type="range" id="volumeSlider" min="0" max="100" value="100" style="width: 100px;">
+                <select class="btn" id="speedSelect">
+                    <option value="0.5">0.5x</option>
+                    <option value="1">1x</option>
+                    <option value="1.25">1.25x</option>
+                    <option value="1.5">1.5x</option>
+                    <option value="2">2x</option>
+                    <option value="3" selected>3x</option>
+                </select>
+                <button class="btn" id="fullscreenBtn">⛶</button>
+                <span class="time-display" id="timeDisplay">0:00 / 0:00</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const video = document.getElementById('videoPlayer');
+        const playPauseBtn = document.getElementById('playPauseBtn');
+        const muteBtn = document.getElementById('muteBtn');
+        const volumeSlider = document.getElementById('volumeSlider');
+        const speedSelect = document.getElementById('speedSelect');
+        const fullscreenBtn = document.getElementById('fullscreenBtn');
+        const progressBar = document.getElementById('progressBar');
+        const progressFill = document.getElementById('progressFill');
+        const timeDisplay = document.getElementById('timeDisplay');
+        const playerControls = document.getElementById('playerControls');
+        const loadingDiv = document.getElementById('loadingDiv');
+        const errorDiv = document.getElementById('errorDiv');
+        const loadingText = document.getElementById('loadingText');
+        const progressInfo = document.getElementById('progressInfo');
+        const downloadStats = document.getElementById('downloadStats');
+        const downloadSpeed = document.getElementById('downloadSpeed');
+        const downloadProgress = document.getElementById('downloadProgress');
+        const peersCount = document.getElementById('peersCount');
+        
+        // Initialize player with torrent URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const torrentUrl = urlParams.get('url');
+        const title = urlParams.get('title') || 'Unknown';
+        
+        // Set default playback speed to 3x
+        video.playbackRate = 3;
+        
+        // TorrentPlayer instance
+        let torrentPlayer = null;
+        
+        // Initialize streaming
+        async function initializeStream() {
+            if (!torrentUrl) {
+                showError('No stream URL provided');
+                return;
+            }
+            
+            // Check if it's a magnet link
+            if (isMagnetLink(torrentUrl)) {
+                await loadMagnetStream();
+            } else {
+                // Direct URL
+                tryDirectPlay();
+            }
+        }
+        
+        async function loadMagnetStream() {
+            try {
+                loadingText.textContent = 'Checking WebTorrent availability...';
+                progressInfo.textContent = 'Initializing streaming...';
+                
+                // Check if WebTorrent is available
+                if (typeof WebTorrent === 'undefined') {
+                    console.error('WebTorrent not loaded');
+                    showError('WebTorrent library not available. Please refresh the page.');
+                    return;
+                }
+                
+                // Prevent browser from opening external torrent client
+                document.addEventListener('click', function(e) {
+                    if (e.target.href && e.target.href.startsWith('magnet:')) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        return false;
+                    }
+                }, true);
+                
+                // Override window.open to prevent external app opening
+                const originalOpen = window.open;
+                window.open = function(url, ...args) {
+                    if (url && url.startsWith('magnet:')) {
+                        console.log('Blocked external magnet link');
+                        return null;
+                    }
+                    return originalOpen.apply(this, [url, ...args]);
+                };
+                
+                loadingText.textContent = 'Creating WebTorrent client...';
+                
+                // Create WebTorrent client with timeout
+                const client = new WebTorrent();
+                
+                // Set timeout for WebTorrent initialization (reduced to 15 seconds)
+                const initTimeout = setTimeout(() => {
+                    console.log('WebTorrent initialization timeout, trying direct play...');
+                    loadingText.textContent = 'Torrent timeout, switching to direct play...';
+                    setTimeout(() => {
+                        tryDirectPlay();
+                    }, 1000);
+                }, 15000);
+                
+                loadingText.textContent = 'Adding torrent...';
+                progressInfo.textContent = 'Connecting to peers...';
+                
+                // Add timeout for torrent add operation
+                const addTimeout = setTimeout(() => {
+                    console.log('Torrent add timeout, switching to direct play...');
+                    loadingText.textContent = 'Connection timeout, trying direct play...';
+                    setTimeout(() => {
+                        tryDirectPlay();
+                    }, 1000);
+                }, 10000);
+                
+                client.add(torrentUrl, function (torrent) {
+                    clearTimeout(initTimeout);
+                    clearTimeout(addTimeout);
+                    console.log('Torrent added successfully:', torrent.name);
+                    console.log('Files in torrent:', torrent.files.length);
+                    loadingText.textContent = 'Finding video file...';
+                    
+                    // Find video file
+                    const videoFile = torrent.files.find(file => {
+                        const name = file.name.toLowerCase();
+                        return name.endsWith('.mp4') || name.endsWith('.mkv') || 
+                               name.endsWith('.avi') || name.endsWith('.webm') ||
+                               name.endsWith('.mov') || name.endsWith('.m4v');
+                    }) || torrent.files.reduce((prev, current) => 
+                        (prev.length > current.length) ? prev : current
+                    );
+                    
+                    console.log('Selected video file:', videoFile ? videoFile.name : 'none');
+                    
+                    if (videoFile) {
+                        loadingText.textContent = 'Starting stream...';
+                        progressInfo.textContent = `Playing: ${videoFile.name}`;
+                        
+                        // Use appendTo method for better browser compatibility
+                        try {
+                            videoFile.appendTo(video, {
+                                autoplay: true,
+                                controls: false
+                            });
+                            
+                            video.addEventListener('loadstart', function() {
+                                console.log('Video loading started');
+                                loadingDiv.style.display = 'none';
+                                playerControls.style.display = 'block';
+                                showDownloadStats();
+                            });
+                            
+                            video.addEventListener('canplay', function() {
+                                console.log('Video can play');
+                                video.playbackRate = 3.0;
+                                video.play().catch(e => console.log('Autoplay blocked:', e));
+                            });
+                            
+                            video.addEventListener('error', function(e) {
+                                console.error('Video error:', e);
+                                showError('Video playback error');
+                            });
+                            
+                        } catch (streamError) {
+                            console.error('Streaming error:', streamError);
+                            // Fallback to blob URL
+                            videoFile.getBlobURL((err, url) => {
+                                if (err) {
+                                    console.error('Blob URL error:', err);
+                                    showError('Unable to stream video file');
+                                } else {
+                                    video.src = url;
+                                    loadingDiv.style.display = 'none';
+                                    playerControls.style.display = 'block';
+                                    showDownloadStats();
+                                    video.playbackRate = 3.0;
+                                    video.play().catch(e => console.log('Autoplay blocked'));
+                                }
+                            });
+                        }
+                        
+                        // Update stats
+                        const statsInterval = setInterval(() => {
+                            if (torrent) {
+                                downloadSpeed.textContent = formatBytes(torrent.downloadSpeed) + '/s';
+                                downloadProgress.textContent = Math.round(torrent.progress * 100) + '%';
+                                peersCount.textContent = torrent.numPeers;
+                            }
+                        }, 1000);
+                        
+                        window.torrentClient = client;
+                        window.statsInterval = statsInterval;
+                    } else {
+                        showError('No video file found in torrent');
+                    }
+                });
+                
+                client.on('error', function (err) {
+                    clearTimeout(initTimeout);
+                    console.error('WebTorrent error:', err);
+                    showError('WebTorrent error: ' + err.message);
+                });
+                
+            } catch (error) {
+                console.error('Magnet loading failed:', error);
+                showError('Failed to initialize streaming: ' + error.message);
+            }
+        }
+        
+
+        
+        function setupVideoEvents() {
+            video.addEventListener('loadstart', () => {
+                loadingDiv.style.display = 'block';
+                errorDiv.style.display = 'none';
+            });
+            
+            video.addEventListener('canplay', () => {
+                loadingDiv.style.display = 'none';
+                playerControls.style.display = 'block';
+                video.play();
+            });
+            
+            video.addEventListener('error', (e) => {
+                console.error('Video error:', e);
+                showError('Failed to load video stream');
+            });
+        }
+        
+        function showDownloadStats() {
+            downloadStats.style.display = 'block';
+        }
+        
+        function updateTorrentStats() {
+            if (torrentPlayer) {
+                const stats = torrentPlayer.getStats();
+                if (stats) {
+                    downloadSpeed.textContent = formatBytes(stats.downloadSpeed) + '/s';
+                    downloadProgress.textContent = Math.round(stats.progress * 100) + '%';
+                    peersCount.textContent = stats.numPeers;
+                }
+            }
+        }
+        
+        function setupVideoEvents() {
+            video.addEventListener('loadstart', () => {
+                loadingDiv.style.display = 'block';
+                errorDiv.style.display = 'none';
+            });
+            
+            video.addEventListener('canplay', () => {
+                loadingDiv.style.display = 'none';
+                playerControls.style.display = 'block';
+                video.play();
+            });
+            
+            video.addEventListener('error', (e) => {
+                console.error('Video error:', e);
+                showError('Failed to load video stream');
+            });
+        }
+        
+        function showError(message) {
+            loadingDiv.style.display = 'none';
+            playerControls.style.display = 'none';
+            downloadStats.style.display = 'none';
+            errorDiv.style.display = 'block';
+            errorDiv.querySelector('p').textContent = message;
+        }
+        
+        function retryStream() {
+            errorDiv.style.display = 'none';
+            if (torrentPlayer) {
+                torrentPlayer.destroy();
+                torrentPlayer = null;
+            }
+            initializeStream();
+        }
+        
+        function tryDirectPlay() {
+            console.log('Attempting direct play fallback');
+            errorDiv.style.display = 'none';
+            loadingDiv.style.display = 'block';
+            loadingText.textContent = 'Trying direct playback...';
+            progressInfo.textContent = 'Attempting alternative streaming method...';
+            
+            if (window.torrentClient) {
+                window.torrentClient.destroy();
+                window.torrentClient = null;
+            }
+            
+            // Check if URL is actually a magnet link
+            if (torrentUrl.startsWith('magnet:')) {
+                loadingText.textContent = 'Magnet link detected';
+                progressInfo.textContent = 'Cannot play magnet links directly';
+                
+                setTimeout(() => {
+                    showError('This content requires torrent streaming. Please check your network connection and try again.');
+                }, 2000);
+                return;
+            }
+            
+            // Try direct HTTP/HTTPS URL
+            video.src = torrentUrl;
+            video.addEventListener('loadstart', function() {
+                loadingDiv.style.display = 'none';
+                playerControls.style.display = 'block';
+                video.playbackRate = 3.0;
+            });
+            
+            video.addEventListener('error', function(e) {
+                console.error('Direct play failed:', e);
+                showError('Unable to load video. Please check the stream URL.');
+            });
+        }
+        
+        // Player controls
+        playPauseBtn.addEventListener('click', () => {
+            if (video.paused) {
+                video.play();
+                playPauseBtn.textContent = '⏸️';
+            } else {
+                video.pause();
+                playPauseBtn.textContent = '▶️';
+            }
+        });
+        
+        muteBtn.addEventListener('click', () => {
+            video.muted = !video.muted;
+            muteBtn.textContent = video.muted ? '🔇' : '🔊';
+        });
+        
+        volumeSlider.addEventListener('input', () => {
+            video.volume = volumeSlider.value / 100;
+        });
+        
+        speedSelect.addEventListener('change', () => {
+            video.playbackRate = parseFloat(speedSelect.value);
+        });
+        
+        fullscreenBtn.addEventListener('click', () => {
+            if (document.fullscreenElement) {
+                document.exitFullscreen();
+            } else {
+                document.documentElement.requestFullscreen();
+            }
+        });
+        
+        // Progress bar
+        video.addEventListener('timeupdate', () => {
+            const progress = (video.currentTime / video.duration) * 100;
+            progressFill.style.width = progress + '%';
+            
+            const current = formatTime(video.currentTime);
+            const duration = formatTime(video.duration);
+            timeDisplay.textContent = `${current} / ${duration}`;
+        });
+        
+        progressBar.addEventListener('click', (e) => {
+            const rect = progressBar.getBoundingClientRect();
+            const clickX = e.clientX - rect.left;
+            const newTime = (clickX / rect.width) * video.duration;
+            video.currentTime = newTime;
+        });
+        
+        function formatTime(seconds) {
+            if (isNaN(seconds)) return '0:00';
+            const mins = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${mins}:${secs.toString().padStart(2, '0')}`;
+        }
+        
+        // Quality selector (placeholder - would need actual implementation)
+        document.querySelectorAll('.quality-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.quality-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                // In real implementation, switch video quality here
+            });
+        });
+        
+        // Hide controls after inactivity
+        let controlsTimeout;
+        function showControls() {
+            playerControls.style.opacity = '1';
+            clearTimeout(controlsTimeout);
+            controlsTimeout = setTimeout(() => {
+                if (!video.paused) {
+                    playerControls.style.opacity = '0';
+                }
+            }, 3000);
+        }
+        
+        document.addEventListener('mousemove', showControls);
+        video.addEventListener('play', () => playPauseBtn.textContent = '⏸️');
+        video.addEventListener('pause', () => playPauseBtn.textContent = '▶️');
+        
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', () => {
+            if (window.torrentClient) {
+                window.torrentClient.destroy();
+            }
+            if (window.statsInterval) {
+                clearInterval(window.statsInterval);
+            }
+        });
+        
+        // Prevent magnet links from opening external apps
+        document.addEventListener('DOMContentLoaded', function() {
+            // Override protocol handlers
+            if (navigator.registerProtocolHandler) {
+                try {
+                    navigator.registerProtocolHandler('magnet', 
+                        window.location.origin + '/custom_player?torrent=%s', 
+                        'AniFlix Player');
+                } catch (e) {
+                    console.log('Protocol handler registration failed:', e);
+                }
+            }
+            
+            // Block all magnet link clicks
+            document.addEventListener('click', function(e) {
+                const target = e.target.closest('a');
+                if (target && target.href && target.href.startsWith('magnet:')) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    e.stopImmediatePropagation();
+                    console.log('Blocked magnet link click');
+                    return false;
+                }
+            }, true);
+        });
+        
+        // Initialize with faster timeout
+        console.log('Starting initialization...');
+        console.log('WebTorrent available:', typeof WebTorrent !== 'undefined');
+        
+        // Set overall timeout for the entire loading process
+        const overallTimeout = setTimeout(() => {
+            console.log('Overall timeout reached, forcing fallback');
+            loadingText.textContent = 'Loading timeout, trying alternative method...';
+            setTimeout(() => {
+                if (torrentUrl.startsWith('magnet:')) {
+                    showError('Unable to stream this content. Network connection may be limited.');
+                } else {
+                    tryDirectPlay();
+                }
+            }, 1000);
+        }, 20000); // 20 second overall timeout
+        
+        // Wait for WebTorrent with reduced timeout
+        let webTorrentAttempts = 0;
+        function waitForWebTorrent() {
+            webTorrentAttempts++;
+            if (typeof WebTorrent !== 'undefined') {
+                console.log('WebTorrent loaded, initializing stream...');
+                initializeStream();
+            } else if (webTorrentAttempts > 6) { // Reduced from 10 to 6 (3 seconds)
+                console.error('WebTorrent failed to load after 3 seconds');
+                clearTimeout(overallTimeout);
+                showError('WebTorrent library failed to load. Trying alternative method...');
+                setTimeout(() => {
+                    if (torrentUrl.startsWith('magnet:')) {
+                        showError('This content requires torrent support. Please check your connection.');
+                    } else {
+                        tryDirectPlay();
+                    }
+                }, 1000);
+            } else {
+                console.log('WebTorrent not ready, waiting... attempt', webTorrentAttempts);
+                setTimeout(waitForWebTorrent, 500);
+            }
+        }
+        
+        waitForWebTorrent();
+        document.title = `${title} - AniFlix Player`;
+        
+        // Add keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.target.tagName === 'INPUT') return;
+            
+            switch(e.code) {
+                case 'Space':
+                    e.preventDefault();
+                    playPauseBtn.click();
+                    break;
+                case 'KeyF':
+                    e.preventDefault();
+                    fullscreenBtn.click();
+                    break;
+                case 'KeyM':
+                    e.preventDefault();
+                    muteBtn.click();
+                    break;
+                case 'ArrowLeft':
+                    e.preventDefault();
+                    video.currentTime -= 10;
+                    break;
+                case 'ArrowRight':
+                    e.preventDefault();
+                    video.currentTime += 10;
+                    break;
+                case 'ArrowUp':
+                    e.preventDefault();
+                    video.volume = Math.min(1, video.volume + 0.1);
+                    volumeSlider.value = video.volume * 100;
+                    break;
+                case 'ArrowDown':
+                    e.preventDefault();
+                    video.volume = Math.max(0, video.volume - 0.1);
+                    volumeSlider.value = video.volume * 100;
+                    break;
+            }
+        });
+    </script>
+</body>
+</html>

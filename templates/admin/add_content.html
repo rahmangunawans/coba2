@@ -1,0 +1,290 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-900 py-8">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="bg-gray-800 shadow-xl rounded-lg overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-700">
+                <h1 class="text-2xl font-bold text-white">
+                    <i class="fas fa-plus-circle text-red-500 mr-3"></i>
+                    {% if content_type == 'anime' %}Add New Anime
+                    {% elif content_type == 'movie' %}Add New Movie
+                    {% elif content_type == 'season' %}Add Season to {{ anime.title }}
+                    {% elif content_type == 'episode' %}Add Episode to Season {{ season.season_number }}
+                    {% elif content_type == 'movie_part' %}Add Movie Part to {{ movie.title }}
+                    {% endif %}
+                </h1>
+            </div>
+            
+            <div class="p-6">
+                <form method="POST" class="space-y-6">
+                    {{ form.hidden_tag() }}
+
+                {% if content_type == 'anime' %}
+                    <!-- Anime Form -->
+                    <div class="grid md:grid-cols-2 gap-6">
+                        <div>
+                            {{ form.title.label(class="block text-sm font-medium text-gray-300 mb-2") }}
+                            {{ form.title(class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-red-500") }}
+                            {% for error in form.title.errors %}
+                                <p class="text-red-500 text-xs mt-1">{{ error }}</p>
+                            {% endfor %}
+                        </div>
+                        
+                        <div>
+                            {{ form.year.label(class="block text-sm font-medium text-gray-300 mb-2") }}
+                            {{ form.year(class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-red-500") }}
+                            {% for error in form.year.errors %}
+                                <p class="text-red-500 text-xs mt-1">{{ error }}</p>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    
+                    <div class="grid md:grid-cols-2 gap-6">
+                        <div>
+                            {{ form.genre.label(class="block text-sm font-medium text-gray-300 mb-2") }}
+                            {{ form.genre(class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-red-500", placeholder="Action, Adventure, Comedy") }}
+                            {% for error in form.genre.errors %}
+                                <p class="text-red-500 text-xs mt-1">{{ error }}</p>
+                            {% endfor %}
+                        </div>
+                        
+                        <div>
+                            {{ form.rating.label(class="block text-sm font-medium text-gray-300 mb-2") }}
+                            {{ form.rating(class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-red-500", step="0.1", min="0", max="10") }}
+                            {% for error in form.rating.errors %}
+                                <p class="text-red-500 text-xs mt-1">{{ error }}</p>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    
+                    <div>
+                        {{ form.poster_url.label(class="block text-sm font-medium text-gray-300 mb-2") }}
+                        {{ form.poster_url(class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-red-500", placeholder="https://example.com/poster.jpg") }}
+                        {% for error in form.poster_url.errors %}
+                            <p class="text-red-500 text-xs mt-1">{{ error }}</p>
+                        {% endfor %}
+                    </div>
+                    
+                    <div>
+                        {{ form.trailer_url.label(class="block text-sm font-medium text-gray-300 mb-2") }}
+                        {{ form.trailer_url(class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-red-500", placeholder="https://youtube.com/watch?v=...") }}
+                        {% for error in form.trailer_url.errors %}
+                            <p class="text-red-500 text-xs mt-1">{{ error }}</p>
+                        {% endfor %}
+                    </div>
+                    
+                    <div>
+                        {{ form.description.label(class="block text-sm font-medium text-gray-300 mb-2") }}
+                        {{ form.description(class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-red-500 h-32 resize-vertical") }}
+                        {% for error in form.description.errors %}
+                            <p class="text-red-500 text-xs mt-1">{{ error }}</p>
+                        {% endfor %}
+                    </div>
+
+                {% elif content_type == 'movie' %}
+                    <!-- Movie Form -->
+                    <div class="grid md:grid-cols-2 gap-6">
+                        <div>
+                            {{ form.title.label(class="block text-sm font-medium text-gray-300 mb-2") }}
+                            {{ form.title(class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-red-500") }}
+                            {% for error in form.title.errors %}
+                                <p class="text-red-500 text-xs mt-1">{{ error }}</p>
+                            {% endfor %}
+                        </div>
+                        
+                        <div>
+                            {{ form.year.label(class="block text-sm font-medium text-gray-300 mb-2") }}
+                            {{ form.year(class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-red-500") }}
+                            {% for error in form.year.errors %}
+                                <p class="text-red-500 text-xs mt-1">{{ error }}</p>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    
+                    <div class="grid md:grid-cols-3 gap-6">
+                        <div>
+                            {{ form.genre.label(class="block text-sm font-medium text-gray-300 mb-2") }}
+                            {{ form.genre(class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-red-500") }}
+                            {% for error in form.genre.errors %}
+                                <p class="text-red-500 text-xs mt-1">{{ error }}</p>
+                            {% endfor %}
+                        </div>
+                        
+                        <div>
+                            {{ form.rating.label(class="block text-sm font-medium text-gray-300 mb-2") }}
+                            {{ form.rating(class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-red-500", step="0.1", min="0", max="10") }}
+                            {% for error in form.rating.errors %}
+                                <p class="text-red-500 text-xs mt-1">{{ error }}</p>
+                            {% endfor %}
+                        </div>
+                        
+                        <div>
+                            {{ form.duration_minutes.label(class="block text-sm font-medium text-gray-300 mb-2") }}
+                            {{ form.duration_minutes(class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-red-500") }}
+                            {% for error in form.duration_minutes.errors %}
+                                <p class="text-red-500 text-xs mt-1">{{ error }}</p>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    
+                    <div>
+                        {{ form.poster_url.label(class="block text-sm font-medium text-gray-300 mb-2") }}
+                        {{ form.poster_url(class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-red-500") }}
+                        {% for error in form.poster_url.errors %}
+                            <p class="text-red-500 text-xs mt-1">{{ error }}</p>
+                        {% endfor %}
+                    </div>
+                    
+                    <div>
+                        {{ form.trailer_url.label(class="block text-sm font-medium text-gray-300 mb-2") }}
+                        {{ form.trailer_url(class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-red-500", placeholder="https://youtube.com/watch?v=...") }}
+                        {% for error in form.trailer_url.errors %}
+                            <p class="text-red-500 text-xs mt-1">{{ error }}</p>
+                        {% endfor %}
+                    </div>
+                    
+                    <div>
+                        {{ form.description.label(class="block text-sm font-medium text-gray-300 mb-2") }}
+                        {{ form.description(class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-red-500 h-32 resize-vertical") }}
+                        {% for error in form.description.errors %}
+                            <p class="text-red-500 text-xs mt-1">{{ error }}</p>
+                        {% endfor %}
+                    </div>
+
+                {% elif content_type == 'season' %}
+                    <!-- Season Form -->
+                    <div class="grid md:grid-cols-2 gap-6">
+                        <div>
+                            {{ form.season_number.label(class="block text-sm font-medium text-gray-300 mb-2") }}
+                            {{ form.season_number(class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-red-500") }}
+                            {% for error in form.season_number.errors %}
+                                <p class="text-red-500 text-xs mt-1">{{ error }}</p>
+                            {% endfor %}
+                        </div>
+                        
+                        <div>
+                            {{ form.title.label(class="block text-sm font-medium text-gray-300 mb-2") }}
+                            {{ form.title(class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-red-500") }}
+                            {% for error in form.title.errors %}
+                                <p class="text-red-500 text-xs mt-1">{{ error }}</p>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                {% elif content_type == 'episode' %}
+                    <!-- Episode Form -->
+                    <div class="grid md:grid-cols-2 gap-6">
+                        <div>
+                            {{ form.episode_number.label(class="block text-sm font-medium text-gray-300 mb-2") }}
+                            {{ form.episode_number(class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-red-500") }}
+                            {% for error in form.episode_number.errors %}
+                                <p class="text-red-500 text-xs mt-1">{{ error }}</p>
+                            {% endfor %}
+                        </div>
+                        
+                        <div>
+                            {{ form.duration_minutes.label(class="block text-sm font-medium text-gray-300 mb-2") }}
+                            {{ form.duration_minutes(class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-red-500") }}
+                            {% for error in form.duration_minutes.errors %}
+                                <p class="text-red-500 text-xs mt-1">{{ error }}</p>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    
+                    <div>
+                        {{ form.title.label(class="block text-sm font-medium text-gray-300 mb-2") }}
+                        {{ form.title(class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-red-500") }}
+                        {% for error in form.title.errors %}
+                            <p class="text-red-500 text-xs mt-1">{{ error }}</p>
+                        {% endfor %}
+                    </div>
+                    
+                    <div>
+                        {{ form.torrent_url.label(class="block text-sm font-medium text-gray-300 mb-2") }}
+                        {{ form.torrent_url(class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-red-500", placeholder="magnet:?xt=urn:btih:...") }}
+                        <p class="text-gray-500 text-xs mt-1">Enter the magnet link or torrent URL for this episode</p>
+                        {% for error in form.torrent_url.errors %}
+                            <p class="text-red-500 text-xs mt-1">{{ error }}</p>
+                        {% endfor %}
+                    </div>
+                    
+                    <div>
+                        {{ form.thumbnail_url.label(class="block text-sm font-medium text-gray-300 mb-2") }}
+                        {{ form.thumbnail_url(class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-red-500") }}
+                        {% for error in form.thumbnail_url.errors %}
+                            <p class="text-red-500 text-xs mt-1">{{ error }}</p>
+                        {% endfor %}
+                    </div>
+                    
+                    <div>
+                        {{ form.description.label(class="block text-sm font-medium text-gray-300 mb-2") }}
+                        {{ form.description(class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-red-500 h-24 resize-vertical") }}
+                        {% for error in form.description.errors %}
+                            <p class="text-red-500 text-xs mt-1">{{ error }}</p>
+                        {% endfor %}
+                    </div>
+                
+                {% elif content_type == 'movie_part' %}
+                    <!-- Movie Part Form -->
+                    <div class="grid md:grid-cols-2 gap-6">
+                        <div>
+                            {{ form.part_number.label(class="block text-sm font-medium text-gray-300 mb-2") }}
+                            {{ form.part_number(class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-red-500") }}
+                            {% for error in form.part_number.errors %}
+                                <p class="text-red-500 text-xs mt-1">{{ error }}</p>
+                            {% endfor %}
+                        </div>
+                        
+                        <div>
+                            {{ form.duration_minutes.label(class="block text-sm font-medium text-gray-300 mb-2") }}
+                            {{ form.duration_minutes(class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-red-500") }}
+                            {% for error in form.duration_minutes.errors %}
+                                <p class="text-red-500 text-xs mt-1">{{ error }}</p>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    
+                    <div>
+                        {{ form.title.label(class="block text-sm font-medium text-gray-300 mb-2") }}
+                        {{ form.title(class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-red-500") }}
+                        {% for error in form.title.errors %}
+                            <p class="text-red-500 text-xs mt-1">{{ error }}</p>
+                        {% endfor %}
+                    </div>
+                    
+                    <div>
+                        {{ form.torrent_url.label(class="block text-sm font-medium text-gray-300 mb-2") }}
+                        {{ form.torrent_url(class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-red-500", placeholder="magnet:?xt=urn:btih:...") }}
+                        <p class="text-gray-500 text-xs mt-1">Enter the magnet link or torrent URL for this movie part</p>
+                        {% for error in form.torrent_url.errors %}
+                            <p class="text-red-500 text-xs mt-1">{{ error }}</p>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+
+                <!-- Submit Button -->
+                <div class="flex space-x-4">
+                    <button type="submit" class="bg-red-600 hover:bg-red-700 text-white px-8 py-3 rounded-lg font-semibold">
+                        <i class="fas fa-save mr-2"></i>
+                        {% if edit_mode %}
+                            Update {{ content_type|title }}
+                        {% else %}
+                            {% if content_type == 'anime' %}Add Anime
+                            {% elif content_type == 'movie' %}Add Movie
+                            {% elif content_type == 'season' %}Add Season
+                            {% elif content_type == 'episode' %}Add Episode
+                            {% elif content_type == 'movie_part' %}Add Movie Part
+                            {% endif %}
+                        {% endif %}
+                    </button>
+                    <a href="{{ url_for('admin_manage_content') }}" class="bg-gray-600 hover:bg-gray-700 text-white px-8 py-3 rounded-lg font-semibold">
+                        Cancel
+                    </a>
+                </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Dashboard - AniFlix{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-900 py-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Header -->
+        <div class="mb-8">
+            <h1 class="text-3xl font-bold text-white">Admin Dashboard</h1>
+            <p class="text-gray-400">Manage your streaming platform</p>
+        </div>
+
+        <!-- Statistics Cards -->
+        <div class="grid md:grid-cols-3 gap-6 mb-8">
+            <div class="bg-gray-800 rounded-lg p-6">
+                <div class="flex items-center">
+                    <div class="p-3 rounded-full bg-blue-600 text-white mr-4">
+                        <i class="fas fa-tv text-xl"></i>
+                    </div>
+                    <div>
+                        <p class="text-gray-400 text-sm">Total Anime</p>
+                        <p class="text-2xl font-bold text-white">{{ anime_count }}</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-gray-800 rounded-lg p-6">
+                <div class="flex items-center">
+                    <div class="p-3 rounded-full bg-red-600 text-white mr-4">
+                        <i class="fas fa-film text-xl"></i>
+                    </div>
+                    <div>
+                        <p class="text-gray-400 text-sm">Total Movies</p>
+                        <p class="text-2xl font-bold text-white">{{ movie_count }}</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-gray-800 rounded-lg p-6">
+                <div class="flex items-center">
+                    <div class="p-3 rounded-full bg-green-600 text-white mr-4">
+                        <i class="fas fa-users text-xl"></i>
+                    </div>
+                    <div>
+                        <p class="text-gray-400 text-sm">Total Users</p>
+                        <p class="text-2xl font-bold text-white">{{ user_count }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Admin Actions -->
+        <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <a href="{{ url_for('admin_add_anime') }}" 
+               class="bg-gray-800 hover:bg-gray-700 rounded-lg p-6 block text-center transition-colors">
+                <i class="fas fa-plus-circle text-blue-500 text-4xl mb-4"></i>
+                <h3 class="text-white font-semibold mb-2">Add Anime</h3>
+                <p class="text-gray-400 text-sm">Add new anime series</p>
+            </a>
+            
+            <a href="{{ url_for('admin_add_movie') }}" 
+               class="bg-gray-800 hover:bg-gray-700 rounded-lg p-6 block text-center transition-colors">
+                <i class="fas fa-plus-circle text-red-500 text-4xl mb-4"></i>
+                <h3 class="text-white font-semibold mb-2">Add Movie</h3>
+                <p class="text-gray-400 text-sm">Add new movies</p>
+            </a>
+            
+            <a href="{{ url_for('admin_manage_content') }}" 
+               class="bg-gray-800 hover:bg-gray-700 rounded-lg p-6 block text-center transition-colors">
+                <i class="fas fa-cog text-yellow-500 text-4xl mb-4"></i>
+                <h3 class="text-white font-semibold mb-2">Manage Content</h3>
+                <p class="text-gray-400 text-sm">Edit existing content</p>
+            </a>
+            
+            <a href="{{ url_for('browse') }}" 
+               class="bg-gray-800 hover:bg-gray-700 rounded-lg p-6 block text-center transition-colors">
+                <i class="fas fa-eye text-green-500 text-4xl mb-4"></i>
+                <h3 class="text-white font-semibold mb-2">Preview Site</h3>
+                <p class="text-gray-400 text-sm">View as user</p>
+            </a>
+        </div>
+
+        <!-- Quick Stats -->
+        <div class="mt-12">
+            <h2 class="text-2xl font-bold text-white mb-6">Quick Overview</h2>
+            <div class="bg-gray-800 rounded-lg p-6">
+                <div class="grid md:grid-cols-2 gap-8">
+                    <div>
+                        <h3 class="text-lg font-semibold text-white mb-4">Content Distribution</h3>
+                        <div class="space-y-3">
+                            <div class="flex justify-between items-center">
+                                <span class="text-gray-300">Anime Series</span>
+                                <span class="text-white font-semibold">{{ anime_count }}</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-gray-300">Movies</span>
+                                <span class="text-white font-semibold">{{ movie_count }}</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-gray-300">Total Content</span>
+                                <span class="text-red-500 font-semibold">{{ anime_count + movie_count }}</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <h3 class="text-lg font-semibold text-white mb-4">Platform Stats</h3>
+                        <div class="space-y-3">
+                            <div class="flex justify-between items-center">
+                                <span class="text-gray-300">Registered Users</span>
+                                <span class="text-white font-semibold">{{ user_count }}</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-gray-300">Content Quality</span>
+                                <span class="text-green-500 font-semibold">HD Ready</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-gray-300">Platform Status</span>
+                                <span class="text-green-500 font-semibold">Online</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

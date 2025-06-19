@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-900 py-8">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Movie Header -->
+        <div class="bg-gray-800 rounded-lg overflow-hidden mb-8">
+            <div class="md:flex">
+                {% if movie.poster_url %}
+                <div class="md:flex-shrink-0">
+                    <img class="h-48 w-full object-cover md:h-full md:w-48" 
+                         src="{{ movie.poster_url }}" 
+                         alt="{{ movie.title }}" 
+                         onerror="this.src='https://via.placeholder.com/300x450/374151/9CA3AF?text=No+Image'">
+                </div>
+                {% endif %}
+                <div class="p-8">
+                    <div class="uppercase tracking-wide text-sm text-red-500 font-semibold">Movie</div>
+                    <h1 class="block mt-1 text-3xl leading-tight font-bold text-white">{{ movie.title }}</h1>
+                    
+                    <div class="mt-4 flex flex-wrap items-center gap-4 text-gray-300">
+                        {% if movie.year %}
+                        <span class="flex items-center">
+                            <i class="fas fa-calendar mr-2"></i>{{ movie.year }}
+                        </span>
+                        {% endif %}
+                        
+                        {% if movie.rating > 0 %}
+                        <span class="flex items-center">
+                            <i class="fas fa-star text-yellow-400 mr-2"></i>{{ "%.1f"|format(movie.rating) }}
+                        </span>
+                        {% endif %}
+                        
+                        {% if movie.duration_minutes %}
+                        <span class="flex items-center">
+                            <i class="fas fa-clock mr-2"></i>{{ movie.duration_minutes }} min
+                        </span>
+                        {% endif %}
+                        
+                        {% if movie.genre %}
+                        <span class="flex items-center">
+                            <i class="fas fa-tags mr-2"></i>{{ movie.genre }}
+                        </span>
+                        {% endif %}
+                    </div>
+                    
+                    {% if movie.description %}
+                    <p class="mt-4 text-gray-300">{{ movie.description }}</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Subscription Notice for Free Users -->
+        {% if watch_limit %}
+        <div class="bg-yellow-600 border border-yellow-500 rounded-lg p-4 mb-6">
+            <div class="flex">
+                <div class="flex-shrink-0">
+                    <i class="fas fa-exclamation-triangle text-yellow-200"></i>
+                </div>
+                <div class="ml-3">
+                    <h3 class="text-sm font-medium text-yellow-200">Preview Mode</h3>
+                    <div class="mt-2 text-sm text-yellow-100">
+                        <p>You're watching a {{ watch_limit }}-minute preview. <a href="{{ url_for('subscription') }}" class="underline font-semibold">Upgrade to Regular or VIP</a> to watch the full movie.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Trailer Section -->
+        {% if movie.trailer_url %}
+        <div class="bg-gray-800 rounded-lg p-6 mb-8">
+            <h2 class="text-xl font-bold text-white mb-4">
+                <i class="fas fa-play-circle text-red-500 mr-2"></i>Trailer
+            </h2>
+            <div class="aspect-w-16 aspect-h-9">
+                <div class="bg-gray-700 rounded-lg flex items-center justify-center">
+                    <a href="{{ movie.trailer_url }}" target="_blank" 
+                       class="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-lg font-semibold">
+                        <i class="fas fa-external-link-alt mr-2"></i>Watch Trailer
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Movie Parts -->
+        <div class="bg-gray-800 rounded-lg p-6">
+            <h2 class="text-xl font-bold text-white mb-6">
+                <i class="fas fa-film text-red-500 mr-2"></i>Movie Parts
+            </h2>
+            
+            {% if movie.parts %}
+            <div class="grid gap-4">
+                {% for part in movie.parts|sort(attribute='part_number') %}
+                <div class="bg-gray-700 rounded-lg p-4 hover:bg-gray-600 transition-colors">
+                    <div class="flex items-center justify-between">
+                        <div class="flex-1">
+                            <h3 class="text-lg font-semibold text-white">
+                                Part {{ part.part_number }}
+                                {% if part.title %} - {{ part.title }}{% endif %}
+                            </h3>
+                            {% if part.duration_minutes %}
+                            <p class="text-gray-400 text-sm mt-1">
+                                <i class="fas fa-clock mr-1"></i>{{ part.duration_minutes }} minutes
+                            </p>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="flex items-center space-x-3">
+                            {% if part.torrent_url %}
+                                <a href="{{ url_for('stream_movie_part', part_id=part.id) }}" 
+                                   class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-semibold">
+                                    <i class="fas fa-play mr-2"></i>Stream Part {{ part.part_number }}
+                                </a>
+                            {% else %}
+                                <span class="bg-gray-500 text-gray-300 px-4 py-2 rounded-lg cursor-not-allowed">
+                                    <i class="fas fa-exclamation-triangle mr-2"></i>Not Available
+                                </span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="text-center py-12">
+                <i class="fas fa-film text-gray-600 text-4xl mb-4"></i>
+                <h3 class="text-lg font-medium text-white mb-2">No Parts Available</h3>
+                <p class="text-gray-400">This movie hasn't been split into parts yet.</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Back Button -->
+        <div class="mt-8 text-center">
+            <a href="{{ url_for('browse') }}" 
+               class="bg-gray-600 hover:bg-gray-700 text-white px-6 py-3 rounded-lg font-semibold">
+                <i class="fas fa-arrow-left mr-2"></i>Back to Browse
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

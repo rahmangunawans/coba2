@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+
+{% block title %}Browse {{ content_type.title() }} - AniFlix{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-900 py-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Header -->
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-8">
+            <h1 class="text-3xl font-bold text-white mb-4 md:mb-0">
+                Browse {{ content_type.title() }}
+            </h1>
+            
+            <!-- Search and Filter -->
+            <div class="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4">
+                <form method="GET" class="flex space-x-2">
+                    <input type="hidden" name="type" value="{{ content_type }}">
+                    <input type="text" name="search" value="{{ current_search }}" 
+                           placeholder="Search {{ content_type }}..." 
+                           class="bg-gray-800 text-white px-4 py-2 rounded-lg border border-gray-700 focus:border-red-500 focus:outline-none">
+                    <button type="submit" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg">
+                        <i class="fas fa-search"></i>
+                    </button>
+                </form>
+                
+                <!-- Content Type Toggle -->
+                <div class="flex space-x-2">
+                    <a href="{{ url_for('browse', type='anime') }}" 
+                       class="px-4 py-2 rounded-lg {{ 'bg-red-600 text-white' if content_type == 'anime' else 'bg-gray-800 text-gray-300 hover:text-white' }}">
+                        Anime
+                    </a>
+                    <a href="{{ url_for('browse', type='movie') }}" 
+                       class="px-4 py-2 rounded-lg {{ 'bg-red-600 text-white' if content_type == 'movie' else 'bg-gray-800 text-gray-300 hover:text-white' }}">
+                        Movies
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Genre Filter -->
+        <div class="mb-8">
+            <div class="flex flex-wrap gap-2">
+                <a href="{{ url_for('browse', type=content_type) }}" 
+                   class="genre-tag px-3 py-1 rounded-full text-sm {{ 'bg-red-500 text-white' if not current_genre else 'bg-gray-700 text-gray-300' }}">
+                    All
+                </a>
+                {% for genre in ['Action', 'Adventure', 'Comedy', 'Drama', 'Fantasy', 'Horror', 'Romance', 'Sci-Fi', 'Thriller'] %}
+                    <a href="{{ url_for('browse', type=content_type, genre=genre) }}" 
+                       class="genre-tag px-3 py-1 rounded-full text-sm {{ 'bg-red-500 text-white' if current_genre == genre else 'bg-gray-700 text-gray-300' }}">
+                        {{ genre }}
+                    </a>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Results -->
+        {% if content %}
+            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-6">
+                {% for item in content %}
+                <div class="bg-gray-800 rounded-lg overflow-hidden shadow-lg transition-all duration-300 card-hover">
+                    <div class="relative">
+                        <img src="{{ item.poster_url or 'https://via.placeholder.com/300x450/16213e/ffffff?text=' + item.title }}" 
+                             alt="{{ item.title }}" class="w-full h-64 object-cover">
+                        <div class="absolute top-2 right-2 bg-black bg-opacity-70 text-white text-xs px-2 py-1 rounded">
+                            {% if content_type == 'anime' %}
+                                {{ item.year or 'N/A' }}
+                            {% else %}
+                                {{ item.duration_minutes or 'N/A' }}m
+                            {% endif %}
+                        </div>
+                        {% if item.rating > 0 %}
+                        <div class="absolute top-2 left-2 bg-red-600 text-white text-xs px-2 py-1 rounded flex items-center">
+                            <i class="fas fa-star mr-1"></i>
+                            {{ "%.1f"|format(item.rating) }}
+                        </div>
+                        {% endif %}
+                    </div>
+                    <div class="p-4">
+                        <h3 class="font-semibold text-white mb-2 line-clamp-2">{{ item.title }}</h3>
+                        {% if item.genre %}
+                        <div class="mb-3">
+                            {% for genre in item.genre.split(',')[:2] %}
+                            <span class="genre-tag bg-gray-700 text-gray-300 text-xs px-2 py-1 rounded mr-1">
+                                {{ genre.strip() }}
+                            </span>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                        {% if item.description %}
+                        <p class="text-gray-400 text-sm mb-3 line-clamp-2">{{ item.description }}</p>
+                        {% endif %}
+                        {% if content_type == 'anime' %}
+                            <a href="{{ url_for('watch_anime', anime_id=item.id) }}" 
+                               class="bg-red-600 hover:bg-red-700 text-white text-sm px-4 py-2 rounded block text-center">
+                                Watch Episodes
+                            </a>
+                        {% else %}
+                            <a href="{{ url_for('watch_movie', movie_id=item.id) }}" 
+                               class="bg-red-600 hover:bg-red-700 text-white text-sm px-4 py-2 rounded block text-center">
+                                {% if (current_user.subscription_type or 'free') == 'free' %}
+                                    Watch Preview
+                                {% else %}
+                                    Watch Movie
+                                {% endif %}
+                            </a>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="text-center py-12">
+                <i class="fas fa-search text-gray-600 text-6xl mb-4"></i>
+                <h3 class="text-xl font-semibold text-white mb-2">No {{ content_type }} found</h3>
+                <p class="text-gray-400">
+                    {% if current_search or current_genre %}
+                        Try adjusting your search or filter criteria.
+                    {% else %}
+                        No {{ content_type }} available at the moment.
+                    {% endif %}
+                </p>
+                {% if current_search or current_genre %}
+                    <a href="{{ url_for('browse', type=content_type) }}" 
+                       class="mt-4 bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg inline-block">
+                        Clear Filters
+                    </a>
+                {% endif %}
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+.line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+</style>
+{% endblock %}

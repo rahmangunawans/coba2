@@ -1,0 +1,171 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-900 py-8">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Anime Header -->
+        <div class="bg-gray-800 rounded-lg overflow-hidden mb-8">
+            <div class="md:flex">
+                {% if anime.poster_url %}
+                <div class="md:flex-shrink-0">
+                    <img class="h-48 w-full object-cover md:h-full md:w-48" 
+                         src="{{ anime.poster_url }}" 
+                         alt="{{ anime.title }}" 
+                         onerror="this.src='https://via.placeholder.com/300x450/374151/9CA3AF?text=No+Image'">
+                </div>
+                {% endif %}
+                <div class="p-8">
+                    <div class="uppercase tracking-wide text-sm text-red-500 font-semibold">Anime Series</div>
+                    <h1 class="block mt-1 text-3xl leading-tight font-bold text-white">{{ anime.title }}</h1>
+                    
+                    <div class="mt-4 flex flex-wrap items-center gap-4 text-gray-300">
+                        {% if anime.year %}
+                        <span class="flex items-center">
+                            <i class="fas fa-calendar mr-2"></i>{{ anime.year }}
+                        </span>
+                        {% endif %}
+                        
+                        {% if anime.rating > 0 %}
+                        <span class="flex items-center">
+                            <i class="fas fa-star text-yellow-400 mr-2"></i>{{ "%.1f"|format(anime.rating) }}
+                        </span>
+                        {% endif %}
+                        
+                        {% if anime.genre %}
+                        <span class="flex items-center">
+                            <i class="fas fa-tags mr-2"></i>{{ anime.genre }}
+                        </span>
+                        {% endif %}
+                        
+                        <span class="flex items-center">
+                            <i class="fas fa-list mr-2"></i>{{ anime.seasons|length }} Season{{ 's' if anime.seasons|length != 1 else '' }}
+                        </span>
+                    </div>
+                    
+                    {% if anime.description %}
+                    <p class="mt-4 text-gray-300">{{ anime.description }}</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Episode Limit Notice for Free Users -->
+        {% if current_user and (current_user.subscription_type or 'free') == 'free' %}
+        <div class="bg-yellow-600 border border-yellow-500 rounded-lg p-4 mb-6">
+            <div class="flex">
+                <div class="flex-shrink-0">
+                    <i class="fas fa-info-circle text-yellow-200"></i>
+                </div>
+                <div class="ml-3">
+                    <h3 class="text-sm font-medium text-yellow-200">Free Account Limit</h3>
+                    <div class="mt-2 text-sm text-yellow-100">
+                        <p>You can watch up to 5 episodes per day. <a href="{{ url_for('subscription') }}" class="underline font-semibold">Upgrade to Regular or VIP</a> for unlimited access.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Trailer Section -->
+        {% if anime.trailer_url %}
+        <div class="bg-gray-800 rounded-lg p-6 mb-8">
+            <h2 class="text-xl font-bold text-white mb-4">
+                <i class="fas fa-play-circle text-red-500 mr-2"></i>Trailer
+            </h2>
+            <div class="aspect-w-16 aspect-h-9">
+                <div class="bg-gray-700 rounded-lg flex items-center justify-center">
+                    <a href="{{ anime.trailer_url }}" target="_blank" 
+                       class="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-lg font-semibold">
+                        <i class="fas fa-external-link-alt mr-2"></i>Watch Trailer
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Seasons and Episodes -->
+        <div class="space-y-8">
+            {% for season in anime.seasons|sort(attribute='season_number') %}
+            <div class="bg-gray-800 rounded-lg p-6">
+                <h2 class="text-xl font-bold text-white mb-6">
+                    <i class="fas fa-tv text-red-500 mr-2"></i>Season {{ season.season_number }}
+                    {% if season.title %} - {{ season.title }}{% endif %}
+                </h2>
+                
+                {% if season.episodes %}
+                <div class="grid gap-4">
+                    {% for episode in season.episodes|sort(attribute='episode_number') %}
+                    <div class="bg-gray-700 rounded-lg p-4 hover:bg-gray-600 transition-colors">
+                        <div class="flex items-start justify-between">
+                            <div class="flex-1">
+                                <div class="flex items-center space-x-4">
+                                    {% if episode.thumbnail_url %}
+                                    <img class="w-16 h-12 object-cover rounded" 
+                                         src="{{ episode.thumbnail_url }}" 
+                                         alt="Episode {{ episode.episode_number }}"
+                                         onerror="this.style.display='none'">
+                                    {% endif %}
+                                    <div>
+                                        <h3 class="text-lg font-semibold text-white">
+                                            Episode {{ episode.episode_number }}
+                                            {% if episode.title %} - {{ episode.title }}{% endif %}
+                                        </h3>
+                                        {% if episode.description %}
+                                        <p class="text-gray-400 text-sm mt-1">{{ episode.description[:150] }}{% if episode.description|length > 150 %}...{% endif %}</p>
+                                        {% endif %}
+                                        {% if episode.duration_minutes %}
+                                        <p class="text-gray-500 text-sm mt-1">
+                                            <i class="fas fa-clock mr-1"></i>{{ episode.duration_minutes }} minutes
+                                        </p>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="flex items-center space-x-3 ml-4">
+                                {% if episode.torrent_url %}
+                                    <a href="{{ url_for('stream_anime_episode', episode_id=episode.id) }}" 
+                                       class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-semibold">
+                                        <i class="fas fa-play mr-2"></i>Stream
+                                    </a>
+                                {% else %}
+                                    <span class="bg-gray-500 text-gray-300 px-4 py-2 rounded-lg cursor-not-allowed">
+                                        <i class="fas fa-exclamation-triangle mr-2"></i>Not Available
+                                    </span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-12">
+                    <i class="fas fa-tv text-gray-600 text-4xl mb-4"></i>
+                    <h3 class="text-lg font-medium text-white mb-2">No Episodes Available</h3>
+                    <p class="text-gray-400">Episodes for this season haven't been added yet.</p>
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+
+        {% if not anime.seasons %}
+        <div class="bg-gray-800 rounded-lg p-6">
+            <div class="text-center py-12">
+                <i class="fas fa-tv text-gray-600 text-4xl mb-4"></i>
+                <h3 class="text-lg font-medium text-white mb-2">No Seasons Available</h3>
+                <p class="text-gray-400">Seasons for this anime haven't been added yet.</p>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Back Button -->
+        <div class="mt-8 text-center">
+            <a href="{{ url_for('browse') }}" 
+               class="bg-gray-600 hover:bg-gray-700 text-white px-6 py-3 rounded-lg font-semibold">
+                <i class="fas fa-arrow-left mr-2"></i>Back to Browse
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

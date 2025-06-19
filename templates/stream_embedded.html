@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }} - AniFlix Player{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-black">
+    <!-- Player Container -->
+    <div class="relative w-full" style="height: 80vh;">
+        <iframe 
+            src="{{ url_for('custom_player') }}?url={{ url|urlencode }}&title={{ title|urlencode }}"
+            class="w-full h-full border-0"
+            allowfullscreen
+            allow="fullscreen; autoplay; encrypted-media">
+        </iframe>
+    </div>
+    
+    <!-- Content Info -->
+    <div class="bg-gray-900 text-white p-6">
+        <div class="max-w-4xl mx-auto">
+            <h1 class="text-2xl font-bold mb-2">{{ title }}</h1>
+            
+            {% if content_type == 'episode' and episode %}
+            <div class="text-gray-400 mb-4">
+                <p>{{ episode.season.anime.title }} - Season {{ episode.season.season_number }}, Episode {{ episode.episode_number }}</p>
+                {% if episode.description %}
+                <p class="mt-2">{{ episode.description }}</p>
+                {% endif %}
+            </div>
+            {% elif content_type == 'movie_part' and movie_part %}
+            <div class="text-gray-400 mb-4">
+                <p>{{ movie_part.movie.title }} - Part {{ movie_part.part_number }}</p>
+                {% if movie_part.movie.description %}
+                <p class="mt-2">{{ movie_part.movie.description }}</p>
+                {% endif %}
+            </div>
+            {% endif %}
+            
+            <div class="flex flex-wrap gap-4">
+                <a href="{{ url_for('browse') }}" 
+                   class="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg">
+                    Back to Browse
+                </a>
+                
+                {% if current_user.is_admin %}
+                <a href="{{ url_for('admin_dashboard') }}" 
+                   class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg">
+                    Admin Panel
+                </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Handle iframe communication
+window.addEventListener('message', function(event) {
+    if (event.data.type === 'player_error') {
+        console.error('Player error:', event.data.message);
+    }
+});
+</script>
+{% endblock %}

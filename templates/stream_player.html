@@ -1,0 +1,420 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="min-h-screen bg-black">
+    <!-- Video Player Container -->
+    <div class="relative w-full h-screen">
+        <!-- Video Element -->
+        <video id="videoPlayer" class="w-full h-full object-contain bg-black" controls preload="metadata">
+            <source src="{{ torrent_url }}" type="video/mp4">
+            <p class="text-white text-center">Your browser does not support the video tag.</p>
+        </video>
+        
+        <!-- AniFlix Watermark -->
+        <div class="absolute top-4 left-4 z-50">
+            <div class="bg-black bg-opacity-50 rounded-lg px-3 py-2">
+                <h1 class="text-red-500 font-bold text-lg">AniFlix</h1>
+            </div>
+        </div>
+        
+        <!-- Video Info Overlay -->
+        <div class="absolute top-4 right-4 z-50">
+            <div class="bg-black bg-opacity-70 rounded-lg px-4 py-2 text-white">
+                <h2 class="font-semibold text-sm">{{ title }}</h2>
+                {% if watch_limit %}
+                <p class="text-yellow-300 text-xs">Preview: {{ watch_limit }} min limit</p>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Custom Controls Overlay -->
+        <div id="customControls" class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black to-transparent p-4 z-40">
+            <div class="flex items-center justify-between text-white">
+                <!-- Left Controls -->
+                <div class="flex items-center space-x-4">
+                    <button id="playPauseBtn" class="hover:text-red-500 transition-colors">
+                        <i class="fas fa-play text-xl"></i>
+                    </button>
+                    
+                    <div class="flex items-center space-x-2">
+                        <button id="volumeBtn" class="hover:text-red-500 transition-colors">
+                            <i class="fas fa-volume-up"></i>
+                        </button>
+                        <input type="range" id="volumeSlider" min="0" max="100" value="100" 
+                               class="w-20 h-1 bg-gray-600 rounded-lg appearance-none slider">
+                    </div>
+                    
+                    <span id="timeDisplay" class="text-sm">00:00 / 00:00</span>
+                </div>
+                
+                <!-- Center Progress Bar -->
+                <div class="flex-1 mx-8">
+                    <input type="range" id="progressBar" min="0" max="100" value="0" 
+                           class="w-full h-1 bg-gray-600 rounded-lg appearance-none slider">
+                </div>
+                
+                <!-- Right Controls -->
+                <div class="flex items-center space-x-4">
+                    <!-- Quality Selector -->
+                    <div class="relative">
+                        <button id="qualityBtn" class="hover:text-red-500 transition-colors text-sm">
+                            <i class="fas fa-cog mr-1"></i>720p
+                        </button>
+                        <div id="qualityMenu" class="absolute bottom-8 right-0 bg-black bg-opacity-90 rounded-lg p-2 hidden">
+                            <div class="space-y-1">
+                                <button class="quality-option block w-full text-left px-3 py-1 hover:bg-red-600 rounded text-sm" data-quality="1080p">1080p HD</button>
+                                <button class="quality-option block w-full text-left px-3 py-1 hover:bg-red-600 rounded text-sm" data-quality="720p">720p HD</button>
+                                <button class="quality-option block w-full text-left px-3 py-1 hover:bg-red-600 rounded text-sm" data-quality="480p">480p</button>
+                                <button class="quality-option block w-full text-left px-3 py-1 hover:bg-red-600 rounded text-sm" data-quality="360p">360p</button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Speed Selector -->
+                    <div class="relative">
+                        <button id="speedBtn" class="hover:text-red-500 transition-colors text-sm">
+                            <i class="fas fa-tachometer-alt mr-1"></i>1x
+                        </button>
+                        <div id="speedMenu" class="absolute bottom-8 right-0 bg-black bg-opacity-90 rounded-lg p-2 hidden">
+                            <div class="space-y-1">
+                                <button class="speed-option block w-full text-left px-3 py-1 hover:bg-red-600 rounded text-sm" data-speed="2">2x</button>
+                                <button class="speed-option block w-full text-left px-3 py-1 hover:bg-red-600 rounded text-sm" data-speed="1.5">1.5x</button>
+                                <button class="speed-option block w-full text-left px-3 py-1 hover:bg-red-600 rounded text-sm" data-speed="1.25">1.25x</button>
+                                <button class="speed-option block w-full text-left px-3 py-1 hover:bg-red-600 rounded text-sm" data-speed="1">1x</button>
+                                <button class="speed-option block w-full text-left px-3 py-1 hover:bg-red-600 rounded text-sm" data-speed="0.75">0.75x</button>
+                                <button class="speed-option block w-full text-left px-3 py-1 hover:bg-red-600 rounded text-sm" data-speed="0.5">0.5x</button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <button id="fullscreenBtn" class="hover:text-red-500 transition-colors">
+                        <i class="fas fa-expand"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Loading Indicator -->
+        <div id="loadingIndicator" class="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 z-30">
+            <div class="text-center text-white">
+                <div class="animate-spin rounded-full h-16 w-16 border-b-2 border-red-500 mx-auto mb-4"></div>
+                <p class="text-lg">Loading AniFlix Stream...</p>
+                <p class="text-sm text-gray-300">Connecting to torrent source</p>
+            </div>
+        </div>
+        
+        <!-- Error Message -->
+        <div id="errorMessage" class="absolute inset-0 flex items-center justify-center bg-black bg-opacity-75 z-30 hidden">
+            <div class="text-center text-white max-w-md">
+                <i class="fas fa-exclamation-triangle text-red-500 text-4xl mb-4"></i>
+                <h3 class="text-xl font-semibold mb-2">Streaming Error</h3>
+                <p class="text-gray-300 mb-4">Unable to load the video stream. This might be due to:</p>
+                <ul class="text-sm text-gray-400 text-left mb-6">
+                    <li>• Torrent/magnet link not available</li>
+                    <li>• Network connectivity issues</li>
+                    <li>• Browser compatibility</li>
+                </ul>
+                <div class="space-x-4">
+                    <button id="retryBtn" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded">
+                        <i class="fas fa-redo mr-2"></i>Retry
+                    </button>
+                    <a href="{{ url_for('browse') }}" class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded">
+                        <i class="fas fa-arrow-left mr-2"></i>Back to Browse
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Exit/Back Button -->
+    <div class="absolute top-4 left-1/2 transform -translate-x-1/2 z-50">
+        <a href="{{ url_for('browse') }}" 
+           class="bg-black bg-opacity-50 hover:bg-opacity-70 text-white px-4 py-2 rounded-lg transition-colors">
+            <i class="fas fa-times mr-2"></i>Exit Player
+        </a>
+    </div>
+</div>
+
+<style>
+/* Custom Slider Styles */
+.slider {
+    -webkit-appearance: none;
+    background: #4B5563;
+    outline: none;
+    border-radius: 5px;
+}
+
+.slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 15px;
+    height: 15px;
+    border-radius: 50%;
+    background: #EF4444;
+    cursor: pointer;
+}
+
+.slider::-moz-range-thumb {
+    width: 15px;
+    height: 15px;
+    border-radius: 50%;
+    background: #EF4444;
+    cursor: pointer;
+    border: none;
+}
+
+/* Hide default video controls */
+video::-webkit-media-controls {
+    display: none !important;
+}
+
+video::-webkit-media-controls-enclosure {
+    display: none !important;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const video = document.getElementById('videoPlayer');
+    const playPauseBtn = document.getElementById('playPauseBtn');
+    const volumeBtn = document.getElementById('volumeBtn');
+    const volumeSlider = document.getElementById('volumeSlider');
+    const progressBar = document.getElementById('progressBar');
+    const timeDisplay = document.getElementById('timeDisplay');
+    const fullscreenBtn = document.getElementById('fullscreenBtn');
+    const qualityBtn = document.getElementById('qualityBtn');
+    const speedBtn = document.getElementById('speedBtn');
+    const loadingIndicator = document.getElementById('loadingIndicator');
+    const errorMessage = document.getElementById('errorMessage');
+    const customControls = document.getElementById('customControls');
+    
+    let controlsTimeout;
+    
+    // Watch limit for free users
+    {% if watch_limit %}
+    const watchLimit = {{ watch_limit }} * 60; // Convert to seconds
+    
+    video.addEventListener('timeupdate', function() {
+        if (video.currentTime >= watchLimit) {
+            video.pause();
+            alert('Preview time limit reached. Upgrade to continue watching!');
+            window.location.href = "{{ url_for('subscription') }}";
+        }
+    });
+    {% endif %}
+    
+    // Loading and error handling
+    video.addEventListener('loadstart', function() {
+        loadingIndicator.style.display = 'flex';
+    });
+    
+    video.addEventListener('canplay', function() {
+        loadingIndicator.style.display = 'none';
+    });
+    
+    video.addEventListener('error', function() {
+        loadingIndicator.style.display = 'none';
+        errorMessage.style.display = 'flex';
+    });
+    
+    // Retry functionality
+    document.getElementById('retryBtn').addEventListener('click', function() {
+        errorMessage.style.display = 'none';
+        loadingIndicator.style.display = 'flex';
+        video.load();
+    });
+    
+    // Play/Pause
+    playPauseBtn.addEventListener('click', function() {
+        if (video.paused) {
+            video.play();
+            playPauseBtn.innerHTML = '<i class="fas fa-pause text-xl"></i>';
+        } else {
+            video.pause();
+            playPauseBtn.innerHTML = '<i class="fas fa-play text-xl"></i>';
+        }
+    });
+    
+    video.addEventListener('play', function() {
+        playPauseBtn.innerHTML = '<i class="fas fa-pause text-xl"></i>';
+    });
+    
+    video.addEventListener('pause', function() {
+        playPauseBtn.innerHTML = '<i class="fas fa-play text-xl"></i>';
+    });
+    
+    // Volume control
+    volumeSlider.addEventListener('input', function() {
+        video.volume = this.value / 100;
+        updateVolumeIcon();
+    });
+    
+    volumeBtn.addEventListener('click', function() {
+        if (video.muted) {
+            video.muted = false;
+            volumeSlider.value = video.volume * 100;
+        } else {
+            video.muted = true;
+        }
+        updateVolumeIcon();
+    });
+    
+    function updateVolumeIcon() {
+        const icon = volumeBtn.querySelector('i');
+        if (video.muted || video.volume === 0) {
+            icon.className = 'fas fa-volume-mute';
+        } else if (video.volume < 0.5) {
+            icon.className = 'fas fa-volume-down';
+        } else {
+            icon.className = 'fas fa-volume-up';
+        }
+    }
+    
+    // Progress bar
+    video.addEventListener('timeupdate', function() {
+        if (video.duration) {
+            const progress = (video.currentTime / video.duration) * 100;
+            progressBar.value = progress;
+            
+            const currentMins = Math.floor(video.currentTime / 60);
+            const currentSecs = Math.floor(video.currentTime % 60);
+            const totalMins = Math.floor(video.duration / 60);
+            const totalSecs = Math.floor(video.duration % 60);
+            
+            timeDisplay.textContent = 
+                `${currentMins.toString().padStart(2, '0')}:${currentSecs.toString().padStart(2, '0')} / ` +
+                `${totalMins.toString().padStart(2, '0')}:${totalSecs.toString().padStart(2, '0')}`;
+        }
+    });
+    
+    progressBar.addEventListener('input', function() {
+        if (video.duration) {
+            const seekTime = (this.value / 100) * video.duration;
+            video.currentTime = seekTime;
+        }
+    });
+    
+    // Fullscreen
+    fullscreenBtn.addEventListener('click', function() {
+        if (document.fullscreenElement) {
+            document.exitFullscreen();
+        } else {
+            video.requestFullscreen();
+        }
+    });
+    
+    // Quality selector
+    qualityBtn.addEventListener('click', function() {
+        const menu = document.getElementById('qualityMenu');
+        menu.classList.toggle('hidden');
+    });
+    
+    document.querySelectorAll('.quality-option').forEach(option => {
+        option.addEventListener('click', function() {
+            const quality = this.dataset.quality;
+            qualityBtn.innerHTML = `<i class="fas fa-cog mr-1"></i>${quality}`;
+            document.getElementById('qualityMenu').classList.add('hidden');
+            
+            // Note: Actual quality switching would require multiple source URLs
+            console.log('Quality changed to:', quality);
+        });
+    });
+    
+    // Speed selector
+    speedBtn.addEventListener('click', function() {
+        const menu = document.getElementById('speedMenu');
+        menu.classList.toggle('hidden');
+    });
+    
+    document.querySelectorAll('.speed-option').forEach(option => {
+        option.addEventListener('click', function() {
+            const speed = parseFloat(this.dataset.speed);
+            video.playbackRate = speed;
+            speedBtn.innerHTML = `<i class="fas fa-tachometer-alt mr-1"></i>${speed}x`;
+            document.getElementById('speedMenu').classList.add('hidden');
+        });
+    });
+    
+    // Hide controls after inactivity
+    function hideControls() {
+        customControls.style.opacity = '0';
+        customControls.style.pointerEvents = 'none';
+        document.body.style.cursor = 'none';
+    }
+    
+    function showControls() {
+        customControls.style.opacity = '1';
+        customControls.style.pointerEvents = 'auto';
+        document.body.style.cursor = 'default';
+        
+        clearTimeout(controlsTimeout);
+        controlsTimeout = setTimeout(hideControls, 3000);
+    }
+    
+    // Mouse movement shows controls
+    document.addEventListener('mousemove', showControls);
+    video.addEventListener('click', function() {
+        if (video.paused) {
+            video.play();
+        } else {
+            video.pause();
+        }
+    });
+    
+    // Keyboard shortcuts
+    document.addEventListener('keydown', function(e) {
+        switch(e.code) {
+            case 'Space':
+                e.preventDefault();
+                if (video.paused) {
+                    video.play();
+                } else {
+                    video.pause();
+                }
+                break;
+            case 'ArrowLeft':
+                e.preventDefault();
+                video.currentTime -= 10;
+                break;
+            case 'ArrowRight':
+                e.preventDefault();
+                video.currentTime += 10;
+                break;
+            case 'ArrowUp':
+                e.preventDefault();
+                video.volume = Math.min(1, video.volume + 0.1);
+                volumeSlider.value = video.volume * 100;
+                updateVolumeIcon();
+                break;
+            case 'ArrowDown':
+                e.preventDefault();
+                video.volume = Math.max(0, video.volume - 0.1);
+                volumeSlider.value = video.volume * 100;
+                updateVolumeIcon();
+                break;
+            case 'KeyF':
+                e.preventDefault();
+                if (document.fullscreenElement) {
+                    document.exitFullscreen();
+                } else {
+                    video.requestFullscreen();
+                }
+                break;
+        }
+    });
+    
+    // Click outside menus to close them
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('#qualityBtn')) {
+            document.getElementById('qualityMenu').classList.add('hidden');
+        }
+        if (!e.target.closest('#speedBtn')) {
+            document.getElementById('speedMenu').classList.add('hidden');
+        }
+    });
+    
+    // Initialize controls visibility
+    showControls();
+});
+</script>
+{% endblock %}

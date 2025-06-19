@@ -1,0 +1,211 @@
+{% extends "base.html" %}
+
+{% block title %}
+{% if anime %}{{ anime.title }} - Watch{% elif movie %}{{ movie.title }} - Watch{% endif %} - AniFlix
+{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-black">
+    {% if content_type == 'anime' and episode %}
+    <!-- Anime Watching Interface -->
+    <div class="relative">
+        <!-- Video Player -->
+        <div class="aspect-w-16 aspect-h-9 bg-gray-900">
+            <div class="flex items-center justify-center h-96 lg:h-screen">
+                {% if episode.torrent_url %}
+                    <div class="text-center">
+                        <i class="fas fa-play-circle text-red-500 text-6xl mb-4"></i>
+                        <h3 class="text-white text-xl mb-2">{{ episode.title or 'Episode ' + episode.episode_number|string }}</h3>
+                        <p class="text-gray-400 mb-4">{{ anime.title }} - Season {{ season.season_number }}</p>
+                        <a href="{{ url_for('custom_player', url=episode.torrent_url, title=(episode.title or 'Episode ' + episode.episode_number|string)) }}" 
+                           class="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-full inline-flex items-center">
+                            <i class="fas fa-play mr-2"></i>
+                            Stream Now
+                        </a>
+                        <p class="text-gray-500 text-sm mt-2">Stream directly in your browser with AniFlix player</p>
+                    </div>
+                {% else %}
+                    <div class="text-center">
+                        <i class="fas fa-exclamation-triangle text-yellow-500 text-6xl mb-4"></i>
+                        <h3 class="text-white text-xl mb-2">Stream Not Available</h3>
+                        <p class="text-gray-400">This episode doesn't have a streaming source yet.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Episode Info -->
+        <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black via-black to-transparent p-6">
+            <div class="max-w-7xl mx-auto">
+                <h1 class="text-2xl md:text-3xl font-bold text-white mb-2">
+                    {{ episode.title or 'Episode ' + episode.episode_number|string }}
+                </h1>
+                <div class="flex items-center text-gray-300 mb-4">
+                    <span>{{ anime.title }}</span>
+                    <span class="mx-2">•</span>
+                    <span>Season {{ season.season_number }}</span>
+                    <span class="mx-2">•</span>
+                    <span>Episode {{ episode.episode_number }}</span>
+                    {% if episode.duration_minutes %}
+                        <span class="mx-2">•</span>
+                        <span>{{ episode.duration_minutes }}min</span>
+                    {% endif %}
+                </div>
+                {% if episode.description %}
+                    <p class="text-gray-400 mb-4">{{ episode.description }}</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Episode List -->
+    <div class="bg-gray-900 py-8">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <h2 class="text-2xl font-bold text-white mb-6">Episodes - Season {{ season.season_number }}</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {% for ep in season.episodes %}
+                <div class="bg-gray-800 rounded-lg p-4 {{ 'border-2 border-red-500' if ep.id == episode.id else '' }}">
+                    <div class="flex items-start space-x-4">
+                        <div class="flex-shrink-0">
+                            <div class="w-16 h-12 bg-gray-700 rounded flex items-center justify-center">
+                                <span class="text-white text-sm">{{ ep.episode_number }}</span>
+                            </div>
+                        </div>
+                        <div class="flex-1">
+                            <h3 class="text-white font-semibold mb-1">
+                                {{ ep.title or 'Episode ' + ep.episode_number|string }}
+                            </h3>
+                            {% if ep.duration_minutes %}
+                                <p class="text-gray-400 text-sm">{{ ep.duration_minutes }}min</p>
+                            {% endif %}
+                            {% if ep.id != episode.id %}
+                                <a href="{{ url_for('watch_anime', anime_id=anime.id, season=season.id, episode=ep.id) }}" 
+                                   class="text-red-500 hover:text-red-400 text-sm">Watch</a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    {% elif content_type == 'movie' %}
+    <!-- Movie Watching Interface -->
+    <div class="relative">
+        <!-- Video Player -->
+        <div class="aspect-w-16 aspect-h-9 bg-gray-900">
+            <div class="flex items-center justify-center h-96 lg:h-screen">
+                {% if movie.torrent_url %}
+                    <div class="text-center">
+                        <i class="fas fa-play-circle text-red-500 text-6xl mb-4"></i>
+                        <h3 class="text-white text-xl mb-2">{{ movie.title }}</h3>
+                        {% if watch_limit %}
+                            <div class="bg-yellow-600 text-white px-4 py-2 rounded-lg mb-4">
+                                <i class="fas fa-clock mr-2"></i>
+                                Free users can watch {{ watch_limit }} minutes only
+                            </div>
+                        {% endif %}
+                        <a href="{{ url_for('custom_player', url=movie.torrent_url, title=movie.title) }}" 
+                           class="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-full inline-flex items-center">
+                            <i class="fas fa-play mr-2"></i>
+                            Stream Now
+                        </a>
+                        <p class="text-gray-500 text-sm mt-2">Stream directly in your browser with AniFlix player</p>
+                        {% if watch_limit %}
+                            <div class="mt-4">
+                                <a href="{{ url_for('subscription') }}" 
+                                   class="bg-yellow-600 hover:bg-yellow-700 text-white px-6 py-2 rounded-full">
+                                    Upgrade to Watch Full Movie
+                                </a>
+                            </div>
+                        {% endif %}
+                    </div>
+                {% else %}
+                    <div class="text-center">
+                        <i class="fas fa-exclamation-triangle text-yellow-500 text-6xl mb-4"></i>
+                        <h3 class="text-white text-xl mb-2">Stream Not Available</h3>
+                        <p class="text-gray-400">This movie doesn't have a streaming source yet.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Movie Info -->
+        <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black via-black to-transparent p-6">
+            <div class="max-w-7xl mx-auto">
+                <h1 class="text-2xl md:text-3xl font-bold text-white mb-2">{{ movie.title }}</h1>
+                <div class="flex items-center text-gray-300 mb-4">
+                    {% if movie.year %}
+                        <span>{{ movie.year }}</span>
+                        <span class="mx-2">•</span>
+                    {% endif %}
+                    {% if movie.duration_minutes %}
+                        <span>{{ movie.duration_minutes }}min</span>
+                        <span class="mx-2">•</span>
+                    {% endif %}
+                    {% if movie.genre %}
+                        <span>{{ movie.genre }}</span>
+                        <span class="mx-2">•</span>
+                    {% endif %}
+                    <div class="flex items-center">
+                        <i class="fas fa-star text-yellow-400 mr-1"></i>
+                        <span>{{ "%.1f"|format(movie.rating) }}</span>
+                    </div>
+                </div>
+                {% if movie.description %}
+                    <p class="text-gray-400 mb-4">{{ movie.description }}</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- VIP Upgrade Banner for Free Users -->
+    {% if (current_user.subscription_type or 'free') == 'free' %}
+    <div class="bg-gradient-to-r from-red-600 to-red-800 py-8">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <h2 class="text-2xl font-bold text-white mb-4">
+                Upgrade to VIP for the Ultimate Experience
+            </h2>
+            <div class="grid md:grid-cols-4 gap-4 mb-6">
+                <div class="text-white">
+                    <i class="fas fa-play-circle text-3xl mb-2"></i>
+                    <p class="font-semibold">No Ads</p>
+                </div>
+                <div class="text-white">
+                    <i class="fas fa-hd-video text-3xl mb-2"></i>
+                    <p class="font-semibold">1080p Quality</p>
+                </div>
+                <div class="text-white">
+                    <i class="fas fa-devices text-3xl mb-2"></i>
+                    <p class="font-semibold">2 Devices</p>
+                </div>
+                <div class="text-white">
+                    <i class="fas fa-download text-3xl mb-2"></i>
+                    <p class="font-semibold">Download Access</p>
+                </div>
+            </div>
+            <a href="{{ url_for('subscription') }}" 
+               class="bg-white text-red-600 px-8 py-3 rounded-full text-lg font-semibold hover:bg-gray-100 inline-flex items-center">
+                <i class="fas fa-crown mr-2"></i>
+                Upgrade Now
+            </a>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+    // Auto-hide upgrade banner after 10 seconds for free users during movie watching
+    {% if content_type == 'movie' and watch_limit %}
+        setTimeout(function() {
+            const upgradeButton = document.querySelector('a[href="{{ url_for("subscription") }}"]');
+            if (upgradeButton) {
+                upgradeButton.style.display = 'block';
+                upgradeButton.classList.add('animate-pulse');
+            }
+        }, {{ watch_limit * 60 * 1000 }}); // Show after watch limit
+    {% endif %}
+</script>
+{% endblock %}
